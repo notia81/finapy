@@ -13,7 +13,7 @@ data['normP'] = np.cumproduct(data['normP'])
 norm_spread = data['normP']['XOM']-data['normP']['CVX']
 spread = data['Adj Close']['XOM']-data['Adj Close']['CVX']
 
-window = 150
+window = 100
 
 norm_spread = (norm_spread - norm_spread.rolling(window = window , min_periods = window,
                 center =False).mean())/norm_spread.rolling(window = window , min_periods = window , center = False).std()
@@ -44,17 +44,25 @@ def apply_rolling_coint(x , y , fn = lambda a, b :sm.tsa.coint(a,b ), window=150
     coint_sig = pd.Series(coint_sig , index=y.index[window:])
     return(coint_coef , coint_sig)
 
-coint_coef , coint_sig = apply_rolling_coint(data['Adj Close']['XOM'], data['Adj Close']['CVX'])
+coint_coef , coint_sig = apply_rolling_coint(data['Adj Close']['XOM'],
+                                             data['Adj Close']['CVX'],
+                                             window=window)
 coint_markers = coint_coef[coint_sig<=0.05]
 
 def plot_coints(coint_coef, coint_markers, spread, window=150):
     # these plots show that when the coef is sig, then X can Predict Y
     # which can be used to close the gap
     fig , ax1 = plt.subplots()
-    ax1.plot(coint_coef.index, coint_coef, 'g',alpha=0.6 )
-    ax1.plot(coint_markers.index, coint_markers, 'o', alpha=0.7)
+    l1 = ax1.plot(coint_coef.index, coint_coef, 'g',alpha=0.6, label='Coint. Coef' )
+    l2 = ax1.plot(coint_markers.index, coint_markers, 'o', alpha=0.7, label='Coint Sig')
     ax2 = ax1.twinx()
-    ax2.plot(spread.index[window:] , spread.iloc[window:], color='orange', alpha=0.6)
+    l3 = ax2.plot(spread.index[window:] , spread.iloc[window:], color='orange', alpha=0.6, label='Spread')
     ax2.plot(spread.index[window:] , np.linspace(0,0,len(spread.iloc[window:])),color='red',alpha=0.6)
+    ax1.set_ylabel('Cointegration Metrics')
+    ax2.set_ylabel('Normalized Spread')
+    ax1.set_xlabel('Date')
+    lines = l1 + l2 + l3
+    labels = [l.get_label() for l in lines]
+    ax1.legend(lines , labels, loc='lower left')
     plt.show()
-
+plot_coints(coint_coef, coint_markers, spread, window=window)
