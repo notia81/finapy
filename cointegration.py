@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from pandas_datareader import data
+import johansen
 data = data.DataReader(['XOM', 'CVX'], 'yahoo', '01-01-2010', '12-31-2015')
 data['normP'] = data['Adj Close']/data['Adj Close'].shift(1)
 data['normP']['XOM'][0] = 1
@@ -65,4 +66,31 @@ def plot_coints(coint_coef, coint_markers, spread, window=150):
     labels = [l.get_label() for l in lines]
     ax1.legend(lines , labels, loc='lower left')
     plt.show()
-plot_coints(coint_coef, coint_markers, spread, window=window)
+
+#plot_coints(coint_coef, coint_markers, spread, window=window)
+
+#try using the johansen module.
+def get_johansen(y, p, k, signi = 1):
+    if signi == .95:
+        signi = 1
+    elif signi == .99:
+        signi = 2
+    else:
+        signi = 0
+    N, l = y.shape
+    jres = johansen.coint_johansen(y, p, k)
+    trstat = jres.lr1
+    tsignf = jres.cvt
+    for i in range(l):
+        if trstat[i] > tsignf[i,signi]:
+            r= i + 1
+    jres.r = r
+    jres.evecr = jres.evec[:,:r]
+    return jres
+
+jres = get_johansen(data['Adj Close'], 1, 1)
+print("There are ", jres.__class__r, "cointegration vectors")
+v1=jres.__evecr[:,0]
+v2=jres.__evecr[:,1]
+print(v1)
+print(v2)
